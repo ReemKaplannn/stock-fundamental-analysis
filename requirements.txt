@@ -1,0 +1,5 @@
+fastapi
+mangum
+yfinance
+anthropic
+python-dotenv
