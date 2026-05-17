@@ -3,3 +3,4 @@ mangum
 yfinance
 anthropic
 python-dotenv
+deep-translator

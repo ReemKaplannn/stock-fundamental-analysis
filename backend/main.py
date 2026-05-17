@@ -12,6 +12,16 @@ load_dotenv()
 
 app = FastAPI()
 
+
+def translate_to_hebrew(text: str) -> str:
+    if not text:
+        return None
+    try:
+        from deep_translator import GoogleTranslator
+        return GoogleTranslator(source="en", target="iw").translate(text[:4999])
+    except Exception:
+        return text  # fallback to English
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -120,7 +130,7 @@ def fetch_stock_data(ticker_symbol: str):
         "city": safe(info, "city"),
         "website": safe(info, "website"),
         "fullTimeEmployees": safe(info, "fullTimeEmployees"),
-        "longBusinessSummary": safe(info, "longBusinessSummary"),
+        "longBusinessSummary": translate_to_hebrew(safe(info, "longBusinessSummary")),
         "currentPrice": current_price,
         "regularMarketChangePercent": safe(info, "regularMarketChangePercent"),
         # Reports

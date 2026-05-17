@@ -212,10 +212,6 @@ function TabSector({ d }) {
         label="Alpha vs S&P 500" value={d.alpha != null ? fmt.pctRaw(d.alpha) : 'N/A'}
         colorKey={signColor(d.alpha)}
         hint="עודף ביצועים מול השוק. חיובי = ביצוע עדיף. זה מה שחשוב לסוחר" />
-      <MetricCard
-        label="Market Cap" value={d.marketCapFormatted || fmt.large(d.marketCap)}
-        subtitle={d.capCategory}
-        hint="Large Cap יציב יותר · Small Cap תנודתי יותר עם פוטנציאל גבוה" />
     </div>
   )
 }
