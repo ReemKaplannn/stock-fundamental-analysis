@@ -119,9 +119,6 @@ function TabValuation({ d }) {
         colorKey={pegColor(d.pegRatio)}
         hint="P/E חלקי צמיחה. מתחת ל-1 = זול ביחס לצמיחה. מעל 2 = יקר" />
       <MetricCard
-        label="P/B" value={fmt.ratio(d.priceToBook)}
-        hint="מחיר מניה חלקי ערך הנכסים בספרים. מתחת ל-1 = נסחרת מתחת לשווי" />
-      <MetricCard
         label="Market Cap" value={d.marketCapFormatted || fmt.large(d.marketCap)}
         subtitle={d.capCategory}
         hint="שווי שוק כולל: Large +10B · Mid 2-10B · Small מתחת ל-2B" />
@@ -135,10 +132,6 @@ function TabProfitability({ d }) {
   return (
     <div className="tab-grid">
       <MetricCard
-        label="Gross Margin" value={fmt.pct(d.grossMargin)}
-        colorKey={d.grossMargin > 0.4 ? 'positive' : null}
-        hint="רווח לאחר עלויות ייצור בלבד. מעל 40% — מוצר/שירות עם יתרון תחרותי" />
-      <MetricCard
         label="Operating Margin" value={fmt.pct(d.operatingMargin)}
         colorKey={signColor(d.operatingMargin)}
         hint="כמה נשאר אחרי כל הוצאות תפעול. מעל 15% — עסק יעיל ומנוהל טוב" />
@@ -151,17 +144,9 @@ function TabProfitability({ d }) {
         colorKey={signColor(d.fcfMargin)}
         hint="כמה מהמכירות הופך לכסף נזיל. מעל 10% — חברה ייצרנית מזומנים" />
       <MetricCard
-        label="Free Cash Flow" value={d.freeCashflowFormatted || fmt.large(d.freeCashflow)}
-        colorKey={signColor(d.freeCashflow)}
-        hint="הכסף שהחברה מייצרת בפועל — משמש לדיבידנד, רכישות ופירעון חוב" />
-      <MetricCard
         label="ROE" value={fmt.pct(d.returnOnEquity)}
         colorKey={signColor(d.returnOnEquity)}
         hint="תשואה על ההון שבעלי המניות השקיעו. מעל 15% = ניהול מצוין" />
-      <MetricCard
-        label="ROA" value={fmt.pct(d.returnOnAssets)}
-        colorKey={signColor(d.returnOnAssets)}
-        hint="כמה רווח מייצר כל נכס. מעל 5% = ניצול יעיל של משאבי החברה" />
     </div>
   )
 }
@@ -235,6 +220,42 @@ function TabSector({ d }) {
   )
 }
 
+// ── Tab: About ────────────────────────────────────────────────────────────────
+
+function TabAbout({ d }) {
+  const employees = d.fullTimeEmployees
+    ? d.fullTimeEmployees.toLocaleString() + ' עובדים'
+    : null
+
+  return (
+    <div className="about-tab">
+      <div className="about-header">
+        <div className="about-meta">
+          {[d.longName || d.shortName, d.sector, d.industry].filter(Boolean).map((item, i) => (
+            <span key={i} className="about-tag">{item}</span>
+          ))}
+          {d.country && <span className="about-tag">📍 {[d.city, d.country].filter(Boolean).join(', ')}</span>}
+          {employees  && <span className="about-tag">👥 {employees}</span>}
+          {d.website  && (
+            <a href={d.website} target="_blank" rel="noreferrer" className="about-tag about-link">
+              🌐 {d.website.replace(/^https?:\/\//, '')}
+            </a>
+          )}
+        </div>
+      </div>
+
+      {d.longBusinessSummary ? (
+        <div className="about-summary">
+          <h3 className="about-summary-title">על החברה</h3>
+          <p className="about-summary-text">{d.longBusinessSummary}</p>
+        </div>
+      ) : (
+        <p className="about-empty">אין תיאור זמין עבור מניה זו.</p>
+      )}
+    </div>
+  )
+}
+
 // ── Tab: Summary ──────────────────────────────────────────────────────────────
 
 function TabSummary({ ticker }) {
@@ -278,7 +299,7 @@ function TabSummary({ ticker }) {
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 
-const TABS = ['דוחות', 'שווי', 'רווחיות', 'סנטימנט', 'סקטור', 'סיכום AI']
+const TABS = ['דוחות', 'שווי', 'רווחיות', 'סנטימנט', 'סקטור', 'על החברה', 'סיכום AI']
 
 export default function App() {
   const [input, setInput]   = useState('')
@@ -366,12 +387,13 @@ export default function App() {
             </div>
 
             <div className="tab-body">
-              {tab === 0 && <TabReports      d={data} />}
-              {tab === 1 && <TabValuation    d={data} />}
+              {tab === 0 && <TabReports       d={data} />}
+              {tab === 1 && <TabValuation     d={data} />}
               {tab === 2 && <TabProfitability d={data} />}
-              {tab === 3 && <TabSentiment    d={data} />}
-              {tab === 4 && <TabSector       d={data} />}
-              {tab === 5 && <TabSummary      ticker={data.ticker} />}
+              {tab === 3 && <TabSentiment     d={data} />}
+              {tab === 4 && <TabSector        d={data} />}
+              {tab === 5 && <TabAbout         d={data} />}
+              {tab === 6 && <TabSummary       ticker={data.ticker} />}
             </div>
           </>
         )}

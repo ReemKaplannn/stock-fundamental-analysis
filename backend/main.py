@@ -113,8 +113,14 @@ def fetch_stock_data(ticker_symbol: str):
         # General
         "ticker": ticker_symbol.upper(),
         "shortName": safe(info, "shortName"),
+        "longName": safe(info, "longName"),
         "sector": safe(info, "sector"),
         "industry": safe(info, "industry"),
+        "country": safe(info, "country"),
+        "city": safe(info, "city"),
+        "website": safe(info, "website"),
+        "fullTimeEmployees": safe(info, "fullTimeEmployees"),
+        "longBusinessSummary": safe(info, "longBusinessSummary"),
         "currentPrice": current_price,
         "regularMarketChangePercent": safe(info, "regularMarketChangePercent"),
         # Reports
