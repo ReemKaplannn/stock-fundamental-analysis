@@ -573,11 +573,25 @@ body::before {
 .chart-tab { display: flex; flex-direction: column; }
 
 .tradingview-widget-container {
-  height: 580px;
+  height: 620px;
   width: 100%;
   overflow: hidden;
   border-radius: 4px 4px 0 0;
   border-bottom: 1px solid var(--border-l);
+  display: flex;
+  flex-direction: column;
+}
+
+.tradingview-widget-container__widget {
+  flex: 1;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.tradingview-widget-container iframe {
+  height: 100% !important;
+  width: 100% !important;
+  display: block;
 }
 
 .chart-data-grid {
@@ -657,7 +671,7 @@ body::before {
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .quick-stats-row { grid-template-columns: repeat(2, 1fr); }
-  .tradingview-widget-container { height: 420px; }
+  .tradingview-widget-container { height: 460px; }
 }
 
 @media (max-width: 640px) {
@@ -667,5 +681,5 @@ body::before {
   .price-block { align-items: flex-start; }
   .tab-btn { font-size: .65rem; padding: 8px 4px; }
   .current-price { font-size: 1.6rem; }
-  .tradingview-widget-container { height: 320px; }
+  .tradingview-widget-container { height: 360px; }
 }
