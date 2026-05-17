@@ -175,6 +175,12 @@ def fetch_stock_data(ticker_symbol: str):
         "stockYTD": stock_ytd,
         "spyYTD": spy_ytd,
         "alpha": alpha,
+        # Chart tab
+        "fiftyTwoWeekHigh": safe(info, "fiftyTwoWeekHigh"),
+        "fiftyTwoWeekLow": safe(info, "fiftyTwoWeekLow"),
+        "volume": safe(info, "volume"),
+        "averageVolume": safe(info, "averageVolume"),
+        "beta": safe(info, "beta"),
     }
 
 

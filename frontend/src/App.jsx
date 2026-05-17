@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -71,6 +71,63 @@ function ZoneBar({ value, zones }) {
       </div>
     </div>
   )
+}
+
+// Range bar: current position within a low-high range
+function RangeBar({ current, low, high }) {
+  if (current == null || low == null || high == null || high === low) return null
+  const pct = Math.min(Math.max((current - low) / (high - low) * 100, 0), 100)
+  const fromHighPct = ((high - current) / high * 100).toFixed(1)
+  return (
+    <div className="rangebar-wrap">
+      <div className="rangebar-track">
+        <div className="rangebar-fill" style={{ width: `${pct}%` }} />
+        <div className="rangebar-marker" style={{ left: `${pct}%` }} />
+      </div>
+      <div className="rangebar-labels">
+        <span>${low.toFixed(2)}</span>
+        <span className="rangebar-pct">{fromHighPct}% מ-High</span>
+        <span>${high.toFixed(2)}</span>
+      </div>
+    </div>
+  )
+}
+
+// TradingView embedded chart
+function TradingViewChart({ ticker }) {
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    container.innerHTML = '<div class="tradingview-widget-container__widget"></div>'
+
+    const script = document.createElement('script')
+    script.type = 'text/javascript'
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
+    script.async = true
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: ticker,
+      interval: 'D',
+      timezone: 'Etc/UTC',
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      enable_publishing: false,
+      backgroundColor: 'rgba(3,3,10,1)',
+      gridColor: 'rgba(22,22,42,1)',
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      calendar: false,
+      hide_volume: false,
+    })
+    container.appendChild(script)
+    return () => { if (container) container.innerHTML = '' }
+  }, [ticker])
+
+  return <div ref={containerRef} className="tradingview-widget-container" />
 }
 
 // Dual bar: positive right, negative left from center
@@ -328,6 +385,130 @@ function TabSector({ d }) {
   )
 }
 
+// ── Tab: Chart ────────────────────────────────────────────────────────────────
+
+function betaColor(v) {
+  if (v == null) return null
+  return v < 0.8 ? 'positive' : v <= 1.5 ? null : 'warning'
+}
+
+function TabChart({ d }) {
+  const volRatio = (d.volume && d.averageVolume) ? d.volume / d.averageVolume : null
+  const volColor = volRatio == null ? null : volRatio >= 2 ? 'warning' : volRatio >= 1.5 ? null : null
+  const volLabel = volRatio != null ? `${(volRatio * 100).toFixed(0)}% מהממוצע` : 'N/A'
+
+  const chg = d.regularMarketChangePercent
+  const chgStr = chg != null ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%` : 'N/A'
+
+  const fmtVol = (v) => {
+    if (v == null) return 'N/A'
+    if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`
+    if (v >= 1e6) return `${(v / 1e6).toFixed(2)}M`
+    if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`
+    return v.toString()
+  }
+
+  return (
+    <div className="chart-tab">
+      <TradingViewChart ticker={d.ticker} />
+
+      <div className="chart-data-grid">
+
+        {/* 52W Range — wide card */}
+        <div className="metric-card chart-range-card">
+          <div className="metric-label">טווח 52 שבועות</div>
+          <div className="range-values">
+            <span className="range-low">{d.fiftyTwoWeekLow != null ? `$${d.fiftyTwoWeekLow.toFixed(2)}` : 'N/A'}</span>
+            <span className="range-current">{fmt.price(d.currentPrice)}</span>
+            <span className="range-high">{d.fiftyTwoWeekHigh != null ? `$${d.fiftyTwoWeekHigh.toFixed(2)}` : 'N/A'}</span>
+          </div>
+          <RangeBar current={d.currentPrice} low={d.fiftyTwoWeekLow} high={d.fiftyTwoWeekHigh} />
+          <div className="metric-hint">איפה המחיר ביחס לשיא ולשפל השנתי — ככל שקרוב ל-High יותר חזק</div>
+        </div>
+
+        {/* Volume */}
+        <MetricCard
+          label="נפח יומי"
+          value={fmtVol(d.volume)}
+          subtitle={`ממוצע: ${fmtVol(d.averageVolume)}`}
+          colorKey={volColor}
+          hint="נפח גבוה מהממוצע = תנועה עם כוח. נפח נמוך = חלש">
+          {volRatio != null && (
+            <ProgressBar
+              value={Math.min(volRatio * 100, 300)} max={300}
+              color={volRatio >= 2 ? 'var(--warn-fg)' : volRatio >= 1 ? 'var(--pos-fg)' : 'var(--text-3)'}
+              label={volLabel}
+            />
+          )}
+        </MetricCard>
+
+        {/* Beta */}
+        <MetricCard
+          label="Beta"
+          value={d.beta != null ? fmt.ratio(d.beta) : 'N/A'}
+          colorKey={betaColor(d.beta)}
+          hint="פחות מ-1 = פחות תנודתי. מעל 1.5 = מניה אגרסיבית">
+          {d.beta != null && (
+            <ZoneBar value={d.beta} zones={[
+              { max: 0.8,  color: 'var(--accent2)', label: '<0.8' },
+              { max: 1.5,  color: 'var(--pos-fg)',  label: '0.8-1.5' },
+              { max: 9999, color: 'var(--warn-fg)', label: '>1.5' },
+            ]} />
+          )}
+        </MetricCard>
+
+        {/* Day change */}
+        <MetricCard
+          label="שינוי היום"
+          value={chgStr}
+          colorKey={signColor(chg)}
+          hint="תנועה יומית — תמיד בדוק בהקשר של הנפח">
+          <DualBar value={chg} max={8} />
+        </MetricCard>
+
+        {/* Short Interest */}
+        <MetricCard
+          label="Short Interest"
+          value={fmt.pct(d.shortPercentOfFloat)}
+          colorKey={shortColor(d.shortPercentOfFloat)}
+          hint="מעל 15% = לחץ שורט. פוטנציאל סקוויז במקרה של עלייה חדה">
+          {d.shortPercentOfFloat != null && (
+            <ZoneBar value={d.shortPercentOfFloat * 100} zones={[
+              { max: 5,   color: 'var(--pos-fg)', label: '<5%' },
+              { max: 15,  color: 'var(--warn-fg)', label: '5-15%' },
+              { max: 100, color: 'var(--neg-fg)', label: '>15%' },
+            ]} />
+          )}
+        </MetricCard>
+
+        {/* Upside */}
+        <MetricCard
+          label="Upside מ-Target"
+          value={d.upsidePercent != null ? fmt.pctRaw(d.upsidePercent) : 'N/A'}
+          colorKey={signColor(d.upsidePercent)}
+          hint="כמה אנליסטים רואים פוטנציאל עלייה מהמחיר הנוכחי">
+          <DualBar value={d.upsidePercent} max={60} />
+        </MetricCard>
+
+        {/* Next earnings */}
+        <MetricCard
+          label="דוח הבא (קירוב)"
+          value={d.nextEarningsApprox}
+          hint="קטליסט מרכזי — שים לב למרחק מהכניסה לעסקה" />
+
+        {/* Analyst rating */}
+        <MetricCard
+          label="דירוג אנליסטים"
+          value={REC_LABEL[d.recommendationKey] || d.recommendationKey || 'N/A'}
+          colorKey={REC_COLOR[d.recommendationKey]}
+          subtitle={d.numberOfAnalystOpinions ? `${d.numberOfAnalystOpinions} אנליסטים` : null}
+          hint="סנטימנט מוסדי כולל" />
+
+      </div>
+    </div>
+  )
+}
+
 // ── Tab: About ────────────────────────────────────────────────────────────────
 
 function TabAbout({ d }) {
@@ -400,7 +581,7 @@ function TabSummary({ ticker }) {
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 
-const TABS = ['דוחות', 'שווי', 'רווחיות', 'סנטימנט', 'סקטור', 'על החברה', 'סיכום AI']
+const TABS = ['דוחות', 'שווי', 'רווחיות', 'סנטימנט', 'סקטור', 'גרף', 'על החברה', 'סיכום AI']
 
 export default function App() {
   const [input, setInput]     = useState('')
@@ -487,14 +668,15 @@ export default function App() {
               ))}
             </div>
 
-            <div className="tab-body">
+            <div className={`tab-body${tab === 5 ? ' tab-body--chart' : ''}`}>
               {tab === 0 && <TabReports       d={data} />}
               {tab === 1 && <TabValuation     d={data} />}
               {tab === 2 && <TabProfitability d={data} />}
               {tab === 3 && <TabSentiment     d={data} />}
               {tab === 4 && <TabSector        d={data} />}
-              {tab === 5 && <TabAbout         d={data} />}
-              {tab === 6 && <TabSummary       ticker={data.ticker} />}
+              {tab === 5 && <TabChart         d={data} />}
+              {tab === 6 && <TabAbout         d={data} />}
+              {tab === 7 && <TabSummary       ticker={data.ticker} />}
             </div>
           </>
         )}
